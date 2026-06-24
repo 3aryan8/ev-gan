@@ -34,39 +34,7 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
-def segment_and_downsample(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Segments raw battery telemetry by car and charge_segment, sorts by Timestamp,
-    downsamples (taking every 3rd row, e.g. 30s intervals), creates a unique cycle_id,
-    and fixes inverted Min/Max Cell Temperature values.
 
-    Args:
-        df (pd.DataFrame): Cleaned input battery dataframe.
-
-    Returns:
-        pd.DataFrame: Segmented and downsampled dataframe.
-    """
-    grouped = df.groupby(['car', 'charge_segment'])
-    cycle_segments = []
-    
-    for (car_id, segment_id), group in grouped:
-        # Sort chronologically
-        group_sorted = group.sort_values('Timestamp')
-        # Downsample: take every 3rd point (30s intervals from 10s)
-        downsampled = group_sorted.iloc[::3].copy()
-        downsampled['cycle_id'] = f"{car_id}_{segment_id}"
-        cycle_segments.append(downsampled)
-        
-    df_segmented = pd.concat(cycle_segments, ignore_index=True)
-    
-    # Flip temperature values in-place if Min_Cell_Temp > Max_Cell_Temp
-    swap_mask = df_segmented["Min_Cell_Temperature"] > df_segmented["Max_Cell_Temperature"]
-    if swap_mask.any():
-        df_segmented.loc[swap_mask, ["Max_Cell_Temperature", "Min_Cell_Temperature"]] = (
-            df_segmented.loc[swap_mask, ["Min_Cell_Temperature", "Max_Cell_Temperature"]].values
-        )
-        
-    return df_segmented
 
 def split_and_scale_data(
     df: pd.DataFrame, 

@@ -8,8 +8,9 @@ import numpy as np
 import pandas as pd
 import pytest
 import joblib
-from src.data.preprocessing import clean_data, segment_and_downsample, split_and_scale_data
-from src.data.dataset import create_sequences, process_and_save_data
+from src.data.preprocessing import clean_data, split_and_scale_data
+from src.data.sequences import segment_and_downsample, create_sequences
+from src.data.dataset import process_and_save_data
 
 @pytest.fixture
 def sample_raw_df():
