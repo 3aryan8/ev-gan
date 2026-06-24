@@ -24,5 +24,20 @@ model:
 # WGAN-GP and general training hyperparameters
 training:
   batch_size: 64
-  n_critic: 5
-  lambda_gp: 10
+  epochs_gan: 2000         # Number of GAN training epochs
+  n_critic: 5              # Discriminator steps per generator step
+  lambda_gp: 10.0          # Gradient penalty coefficient
+  lambda_physics: 1.0      # Physics loss weighting (soc_monotonicity / advanced)
+  lambda_rc: 1.0           # RC circuit loss weighting
+  lambda_soc: 5.0          # SOC monotonicity weighting (when used standalone)
+  log_every: 100           # Print metrics every N epochs
+  shuffle_buffer: 10000    # tf.data shuffle buffer size
+
+# Feature column indices (position in DEFAULT_FEATURES list in src/data/sequences.py)
+# Used to pass to physics losses without hardcoding integers anywhere
+feature_indices:
+  volt: 0    # Average_Cell_Voltage
+  curr: 1    # Charging_Current
+  soc: 6     # SOC
+  temp: 4    # Max_Cell_Temperature
+
