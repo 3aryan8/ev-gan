@@ -10,6 +10,7 @@ from src.evaluation.visualization import (
     plot_pca,
     plot_all,
 )
+from src.evaluation.downstream_soh import run_downstream_soh
 
 __all__ = [
     # Metrics
@@ -22,4 +23,6 @@ __all__ = [
     "plot_tsne",
     "plot_pca",
     "plot_all",
+    # Downstream task
+    "run_downstream_soh",
 ]
