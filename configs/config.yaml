@@ -15,8 +15,11 @@ paths:
 
 # GAN and Autoencoder Latent/Sequence settings
 model:
-  latent_dim: 32
-  sequence_length: 64
+  latent_dim: 32        # Dimension of the AE bottleneck / GAN latent space
+  noise_dim: 16         # Dimension of the generator noise vector
+  cond_dim: 1           # Dimension of the conditioning variable (capacity)
+  sequence_length: 64   # Fixed timestep length for padded sequences
+  lstm_units: 64        # LSTM hidden units for encoder / decoder
 
 # WGAN-GP and general training hyperparameters
 training:
