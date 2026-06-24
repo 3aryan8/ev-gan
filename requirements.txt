@@ -1,0 +1,20 @@
+# ==========================================
+# Enterprise ML Stack — Linux CUDA Pinned
+# Target: Python 3.11 / CUDA 12.x
+# ==========================================
+
+# Core Deep Learning (Automatically pulls libcublas, libcudnn, etc.)
+tensorflow[and-cuda]==2.16.1
+
+# Data & Math (Safe-pinned away from the NumPy 2.0 blast radius)
+numpy>=1.26.0,<2.0.0
+pandas>=2.2.0
+scikit-learn>=1.4.0
+
+# Configuration Management
+hydra-core>=1.3.2
+
+# Visualization & IO
+matplotlib>=3.8.0
+seaborn>=0.13.0
+joblib>=1.3.2

@@ -1,0 +1,25 @@
+# ==============================================================================
+# Physics-Informed GAN (PIC-GAN) Configuration (Hydra syntax)
+# ==============================================================================
+
+defaults:
+  - _self_
+
+# Global reproducibility seed
+seed: 42
+
+# Directory and file paths
+paths:
+  raw_data_dir: "data/raw/"
+  raw_data_file: "data/raw/all_battery_data_sampled.csv"
+
+# GAN and Autoencoder Latent/Sequence settings
+model:
+  latent_dim: 32
+  sequence_length: 64
+
+# WGAN-GP and general training hyperparameters
+training:
+  batch_size: 64
+  n_critic: 5
+  lambda_gp: 10

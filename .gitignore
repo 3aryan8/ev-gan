@@ -1,0 +1,36 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual Environments (uv / virtualenv)
+.venv/
+venv/
+ENV/
+env/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IDE and System files
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+# Unit tests and caches
+.pytest_cache/
+.coverage
+.cache/
+
+# Project specific artifacts (keep folders via .gitkeep but ignore outputs)
+artifacts/**/*
+!artifacts/**/.gitkeep
+
+# Ignore large raw dataset to prevent repository bloat
+data/raw/all_battery_data_sampled.csv
