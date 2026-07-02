@@ -139,13 +139,19 @@ def main(cfg: DictConfig) -> None:
 
     ae_epochs = int(cfg.training.get("ae_epochs", 50))
     log.info(f"Training autoencoder for {ae_epochs} epochs …")
-    autoencoder.fit(
+    ae_history = autoencoder.fit(
         X_train, X_train,
         epochs=ae_epochs,
         batch_size=batch_size,
         validation_split=0.1,
         verbose=0,
     )
+
+    # Persist history for training-curve plot
+    import pandas as pd
+    ae_history_df = pd.DataFrame(ae_history.history)
+    ae_history_df.to_csv(os.path.join(metrics_dir, "ae_history.csv"), index=False)
+    log.info(f"AE training history saved → {metrics_dir}/ae_history.csv")
 
     encoder.save(os.path.join(models_dir, "encoder.keras"))
     decoder.save(os.path.join(models_dir, "decoder.keras"))
@@ -218,8 +224,17 @@ def main(cfg: DictConfig) -> None:
     # ------------------------------------------------------------------
     _stage("5 — Evaluation (Physics Filter → MMD → Visualization)")
 
-    from src.evaluation.metrics import evaluate_mmd, physics_filter
+    from src.evaluation.metrics import (
+        evaluate_mmd, physics_filter, compute_all_metrics, save_metrics_json,
+    )
     from src.evaluation.visualization import plot_all
+
+    # Resolve evaluation config block (with defaults for backward compat)
+    eval_cfg = cfg.get("evaluation", {})
+    n_bins            = int(eval_cfg.get("n_bins",             50))
+    autocorr_max_lag  = int(eval_cfg.get("autocorr_max_lag",   20))
+    n_sequence_samples = int(eval_cfg.get("n_sequence_samples",  8))
+    sequence_feature  = str(eval_cfg.get("sequence_feature",  "SOC"))
 
     # 5a. Physics rejection filter
     syn_filtered, conds_filtered = physics_filter(
@@ -231,25 +246,54 @@ def main(cfg: DictConfig) -> None:
     np.save(os.path.join(synthetic_dir, "synthetic_filtered_conds.npy"), conds_filtered)
     log.info(f"Filtered synthetic set: {syn_filtered.shape[0]} / {n_synthetic} retained")
 
-    # 5b. MMD — compare real encoder latents vs synthetic generator latents
-    mmd_metrics = evaluate_mmd(
-        real_latents=train_latents,
+    fake_seqs_eval = syn_filtered if len(syn_filtered) > 100 else syn_sequences
+
+    # 5b. Encode test split for leakage-free latent metrics
+    test_latents = encoder.predict(X_test, batch_size=batch_size, verbose=0)
+    np.save(os.path.join(processed_dir, "test_latents.npy"), test_latents)
+
+    # 5c. Full metric suite (test-split arrays used — no leakage)
+    all_metrics = compute_all_metrics(
+        real_sequences_test=X_test,
+        fake_sequences=fake_seqs_eval,
+        real_latents_train=train_latents,
+        real_latents_test=test_latents,
         fake_latents=syn_latents,
+        feature_indices=kde_features,
+        soc_idx=soc_idx,
+        volt_idx=volt_idx,
+        n_bins=n_bins,
+        autocorr_max_lag=autocorr_max_lag,
+        random_state=seed,
     )
+    mmd_metrics = all_metrics["mmd"]["train_split"]  # backward-compat reference
     log.info(
-        f"MMD²={mmd_metrics['mmd2']:.6f}  γ={mmd_metrics['gamma']:.6f}"
+        f"MMD²(train)={mmd_metrics['mmd2']:.6f}  "
+        f"MMD²(test)={all_metrics['mmd']['test_split']['mmd2']:.6f}  "
+        f"γ={mmd_metrics['gamma']:.6f}"
     )
 
-    # 5c. Diagnostic plots (KDE / t-SNE / PCA) — all saved as .pdf
-    test_latents = encoder.predict(X_test, batch_size=batch_size, verbose=0)
+    # 5d. Diagnostic plots — all saved as .pdf
+    import pandas as pd
+    ae_history_path  = os.path.join(metrics_dir, "ae_history.csv")
+    gan_history_path = os.path.join(metrics_dir, "gan_history.csv")
+    ae_hist_df  = pd.read_csv(ae_history_path)  if os.path.isfile(ae_history_path)  else None
+    gan_hist_df = pd.read_csv(gan_history_path) if os.path.isfile(gan_history_path) else None
+
     plot_all(
         real_sequences=X_test,
-        fake_sequences=syn_filtered if len(syn_filtered) > 100 else syn_sequences,
+        fake_sequences=fake_seqs_eval,
         real_latents=test_latents,
         fake_latents=syn_latents,
         feature_indices=kde_features,
         figures_dir=figures_dir,
         random_state=seed,
+        pass_rate_metrics=all_metrics.get("physics_pass_rate"),
+        acf_curves=all_metrics.get("acf_curves"),
+        ae_history_df=ae_hist_df,
+        gan_history_df=gan_hist_df,
+        sequence_sample_feature=sequence_feature,
+        n_sequence_samples=n_sequence_samples,
     )
 
     # ------------------------------------------------------------------
@@ -280,6 +324,20 @@ def main(cfg: DictConfig) -> None:
     log.info(
         f"SOH  Pretrained → RMSE={soh_metrics['pretrained']['rmse']:.6f}  "
         f"MAE={soh_metrics['pretrained']['mae']:.6f}"
+    )
+
+    # Append SOH metrics to all_metrics and save the complete JSON
+    all_metrics["soh"] = soh_metrics
+    save_metrics_json(
+        metrics=all_metrics,
+        save_path=os.path.join(metrics_dir, "eval_metrics.json"),
+    )
+
+    # SOH comparison bar chart (now soh_metrics is available)
+    from src.evaluation.visualization import plot_soh_comparison
+    plot_soh_comparison(
+        soh_metrics=soh_metrics,
+        save_path=os.path.join(figures_dir, "soh_comparison.pdf"),
     )
 
     # ------------------------------------------------------------------

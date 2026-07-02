@@ -48,3 +48,11 @@ feature_indices:
 # Generation and evaluation settings
 n_synthetic: 5000          # Number of synthetic cycles to generate
 physics_mode: soc          # Generator physics loss mode: soc | advanced | rc
+
+# Evaluation metric and visualization settings
+evaluation:
+  n_bins: 50               # Histogram bins for JS divergence
+  autocorr_max_lag: 20     # Maximum lag for autocorrelation fidelity
+  n_samples_viz: 1000      # Subsample cap for t-SNE / PCA
+  n_sequence_samples: 8    # Number of sample sequence pairs for panel plot
+  sequence_feature: SOC    # Feature to use for the sequence sample panel
